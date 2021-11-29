@@ -11,10 +11,18 @@ set -e
 # and don't allow that much flexibility to mount volumes
 WORKDIR=${SRCDIR:-/src}
 
-#
+# Options
+if [[ "${OPTIONS}" == "" ]]; then
+    # --onefile Create a one-file bundled executable.
+    # --clean Clean PyInstaller cache and remove temporary files before building.
+    # --noconfirm Replace output directory without asking for confirmation
+    # --distpath Where to put the bundled app
+    # --workpath Where to put all the temporary work files
+    OPTIONS="--clean --noconfirm --distpath ./dist/${WINEARCH} --workpath /tmp"
+fi
+
 # In case the user specified a custom URL for PYPI, then use
 # that one, instead of the default one.
-#
 if [[ "$PYPI_URL" != "https://pypi.python.org/" ]] || \
    [[ "$PYPI_INDEX_URL" != "https://pypi.python.org/simple" ]]; then
     # the funky looking regexp just extracts the hostname, excluding port
@@ -31,16 +39,15 @@ fi
 
 cd $WORKDIR
 
-if [ -f requirements.txt ]; then
-    pip install -r requirements.txt
-fi # [ -f requirements.txt ]
-
 echo "$@"
 
 if [[ "$@" == "" ]]; then
-    pyinstaller --clean -y --dist ./dist/windows --workpath /tmp *.spec
-    chown -R --reference=. ./dist/windows
+    if [ -f requirements.txt ]; then
+        pip install -r requirements.txt
+    fi
+    echo "Running pyinstaller with options ${OPTIONS}"
+    pyinstaller ${OPTIONS} *.spec
+    chown -R --reference=. ./dist/${WINEARCH}
 else
     sh -c "$@"
-fi # [[ "$@" == "" ]]
-
+fi
